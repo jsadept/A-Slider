@@ -1,0 +1,10 @@
+.page__body {
+	margin: 0;
+	padding: 0;
+	position: relative;
+}
+
+.main {
+	margin: 222px;
+	height: 400px;
+}
