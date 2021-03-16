@@ -5,11 +5,14 @@ const defaultSliderConfig = {
 	direction: 'horizontal',
 	dots: false,
 	infinity: false,
-	speed: 3000,
+	speed: 3000, // loop auto moving timing ms
+	duration: 0.3, // transition-duration: time s
+	timingFunction: 'ease-out', // transition-timing-function: ease|ease-in|ease-out|ease-in-out|linear|step-start|step-end|steps|cubic-bezier
 	spaceBetween: 20,
 	slideId: 0,
 	slidesPerView: 4,
 	slidesPerScroll: 4,
+	isMoving: false,
 
 	get slider() {
 		return document.querySelector('.a-slider');
@@ -24,10 +27,10 @@ const defaultSliderConfig = {
 		return document.querySelectorAll('.a-slide');
 	},
 	get nextBtn() {
-		return document.getElementById('a-slider__arrow_next');
+		return document.querySelector('.a-slider__arrow_next');
 	},
 	get prevBtn() {
-		return document.getElementById('a-slider__arrow_prev');
+		return document.querySelector('.a-slider__arrow_prev');
 	},
 	// firstClone: slides[0].cloneNode(true),
 	// lastClone: slides[slides.length - 1].cloneNode(true),
@@ -38,16 +41,33 @@ class Slider {
 		// Combining default configuration with user configuration data
 		Object.assign(this, props.defaultConfig, props);
 
-		this._cloneSlides();
+		this._init();
 	}
 
-	_init() {}
+	_init() {
+		this._cloneSlides();
+		this.gotoSlide(this.slidesPerScroll, false);
+		this._createSliderButtons();
+	}
 
 	_initSliderSelectors() {}
 
 	_createSliderDots() {}
 
-	_createSliderButtons() {}
+	_createSliderButtons() {
+		this.nextBtn.addEventListener('click', this.nextSlide.bind(this));
+		this.prevBtn.addEventListener('click', this.previousSlide.bind(this));
+
+		this.slidesContainer.addEventListener('transitionend', () => {
+			const cloneIndex = this._hasCloneNodes();
+			if (cloneIndex) {
+				this.gotoSlide(cloneIndex, false);
+				this.isMoving = false;
+			} else {
+				this.isMoving = false;
+			}
+		});
+	}
 
 	_createInfinityArrays() {}
 
@@ -58,25 +78,37 @@ class Slider {
 	_cloneSlides() {
 		// nodeList this.slides to array slides
 		const slides = [...this.slides];
-
-		// clone first slidesPerScroll items
-		const firstClone = slides
-			.filter((current, index) => (index < this.slidesPerScroll ? true : false))
-			.map((current) => current.cloneNode(true));
-
-		// clone last slidesPerScroll items
-		const lastClone = slides
-			.filter((current, index) => (index >= slides.length - this.slidesPerScroll ? true : false))
-			.map((current) => current.cloneNode(true));
-
-		// reverse lastClone array for correct DOM output
+		const firstClone = [];
+		const lastClone = [];
+		for (let i = 0; i < this.slides.length; i++) {
+			if (i < this.slidesPerScroll ? true : false) {
+				const currentSlide = this.slides[i];
+				const currentSlideClone = currentSlide.cloneNode(true);
+				currentSlideClone.dataset.originalIndex = i + this.slidesPerScroll;
+				firstClone.push(currentSlideClone);
+			} else if (i >= slides.length - this.slidesPerScroll ? true : false) {
+				const currentSlide = this.slides[i];
+				const currentSlideClone = currentSlide.cloneNode(true);
+				currentSlideClone.dataset.originalIndex = i + this.slidesPerScroll;
+				lastClone.push(currentSlideClone);
+			}
+		}
 		lastClone.reverse();
 
 		firstClone.forEach((curr) => this.slidesContainer.append(curr));
 		lastClone.forEach((curr, i) => this.slidesContainer.prepend(curr));
+
+		this.updatedSlides = document.querySelectorAll('.a-slide');
 	}
 
-	reRender() {}
+	_hasCloneNodes() {
+		for (let i = this.activeIndex; i < this.activeIndex + this.slidesPerScroll; i++) {
+			if (this.updatedSlides[i].dataset.originalIndex) {
+				return this.updatedSlides[i].dataset.originalIndex;
+			}
+		}
+		return false;
+	}
 
 	start() {}
 
@@ -87,8 +119,6 @@ class Slider {
 	previousSlide() {}
 
 	gotoSlide(index) {}
-
-	destroy() {}
 }
 
 class SliderVertical extends Slider {
@@ -107,8 +137,6 @@ class SliderVertical extends Slider {
 	previousSlide() {}
 
 	gotoSlide(index) {}
-
-	destroy() {}
 }
 
 class SliderHorizontal extends Slider {
@@ -116,17 +144,45 @@ class SliderHorizontal extends Slider {
 		super(props);
 	}
 
-	start() {}
+	start() {
+		this.timerLoop = setInterval(() => {
+			this.nextSlide();
+		}, this.speed);
+	}
 
-	stop() {}
+	stop() {
+		clearInterval(this.timerLoop);
+	}
 
-	nextSlide() {}
+	nextSlide() {
+		if (!this.isMoving) {
+			this.isMoving = true;
+			this.gotoSlide(this.activeIndex + this.slidesPerScroll, true);
+			return true;
+		}
+		return false;
+	}
 
-	previousSlide() {}
+	previousSlide() {
+		if (!this.isMoving) {
+			this.isMoving = true;
+			this.gotoSlide(this.activeIndex - this.slidesPerScroll, true);
+			return true;
+		}
+		return false;
+	}
 
-	gotoSlide(index) {}
+	gotoSlide(index, transition) {
+		const i = Number(index);
+		let slideWidth = 280;
+		let MOVE_WIDTH = slideWidth * i;
 
-	destroy() {}
+		this.activeIndex = i;
+		console.log(`${this.speed}s ${this.timingFunction}`);
+		if (transition) this.slidesContainer.style.transition = `${this.duration}s ${this.timingFunction}`;
+		else this.slidesContainer.style.transition = 'none';
+		this.slidesContainer.style.transform = `translateX(${-MOVE_WIDTH}px)`;
+	}
 }
 
 function createSlider(config, defaultConfig) {
@@ -151,5 +207,4 @@ const slider1 = createSlider({
 	slidesPerView: 4,
 	slidesPerScroll: 4,
 	spaceBetween: 20,
-	speed: 2000,
 });
