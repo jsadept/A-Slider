@@ -31,6 +31,9 @@
 .a-slide {
 	height: 100%;
 	width: 666px;
+	text-align: center;
+	font-size: 5rem;
+	padding-top: 120px;
 }
 
 .a-slide:last-child {
