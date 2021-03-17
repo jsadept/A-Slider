@@ -101,17 +101,14 @@ class Slider {
 	_createInfinityArrays() {}
 
 	_createSlider() {
-		const spaceBetween = this.spaceBetween / 2;
 		const widthOfWrapper = this.slidesWrapper.offsetWidth;
 		const heightOfWrapper = this.slidesWrapper.offsetHeight;
 		const slideWidth = widthOfWrapper / this.slidesPerView - this.spaceBetween;
 		const slideHeight = heightOfWrapper / this.slidesPerView - this.spaceBetween;
-		console.log('here');
+
 		// set slides css settings
-		this.updatedSlides.forEach((current) => {
-			current.style.width = `${slideWidth}px`;
-			current.style.margin = `0 ${spaceBetween}px`;
-		});
+
+		this.setCss(this.spaceBetween, slideWidth, slideHeight);
 
 		// set global properties
 		this.sliderMoveWidth = slideWidth + this.spaceBetween;
@@ -150,7 +147,9 @@ class Slider {
 	_isEnd() {
 		const isLast = () => {
 			let last = this.activeIndex + this.slidesPerScroll;
+
 			if (last < this.updatedSlides.length) return false;
+
 			return true;
 		};
 		const isFirst = () => {
@@ -190,15 +189,51 @@ class SliderVertical extends Slider {
 		this.slider.classList.add('slider_vertical');
 	}
 
-	start() {}
+	start() {
+		this.timerLoop = setInterval(() => {
+			this.nextSlide();
+		}, this.speed);
+	}
 
-	stop() {}
+	stop() {
+		clearInterval(this.timerLoop);
+	}
 
-	nextSlide() {}
+	nextSlide() {
+		if (!this.isMoving) {
+			this.isMoving = true;
+			this.gotoSlide(this.activeIndex + this.slidesPerScroll, true);
+			return true;
+		}
+		return false;
+	}
 
-	previousSlide() {}
+	previousSlide() {
+		if (!this.isMoving) {
+			this.isMoving = true;
+			this.gotoSlide(this.activeIndex - this.slidesPerScroll, true);
+			return true;
+		}
+		return false;
+	}
 
-	gotoSlide(index, transition) {}
+	gotoSlide(index, transition) {
+		const i = Number(index);
+		const moveHeight = this.sliderMoveHeight * i;
+
+		this.activeIndex = i;
+
+		if (transition) this.slidesContainer.style.transition = `${this.duration}s ${this.timingFunction}`;
+		else this.slidesContainer.style.transition = 'none';
+
+		this.slidesContainer.style.transform = `translateY(${-moveHeight}px)`;
+	}
+	setCss(spaceBetween, slideWidth, slideHeight) {
+		this.updatedSlides.forEach((current) => {
+			current.style.height = `${slideHeight}px`;
+			current.style.margin = `${spaceBetween}px 0`;
+		});
+	}
 }
 
 class SliderHorizontal extends Slider {
@@ -245,6 +280,12 @@ class SliderHorizontal extends Slider {
 
 		this.slidesContainer.style.transform = `translateX(${-moveWidth}px)`;
 	}
+	setCss(spaceBetween, slideWidth, slideHeight) {
+		this.updatedSlides.forEach((current) => {
+			current.style.width = `${slideWidth}px`;
+			current.style.margin = `0 ${spaceBetween / 2}px`;
+		});
+	}
 }
 
 function createSlider(config, defaultConfig) {
@@ -263,10 +304,11 @@ function createSlider(config, defaultConfig) {
 const slider1 = createSlider({
 	centered: true,
 	infinity: false,
-	direction: 'horizontal',
+	direction: 'vertical',
 	arrows: true,
 	loop: true,
-	slidesPerView: 3,
-	slidesPerScroll: 4,
+	slidesPerView: 1,
+	slidesPerScroll: 1,
 	spaceBetween: 20,
+	duration: 0.3,
 });
